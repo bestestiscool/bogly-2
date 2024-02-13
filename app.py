@@ -79,12 +79,20 @@ def delete_user(user_id):
     db.session.commit()
     return redirect(url_for('list_users'))
 
+
+#              """From here on its routes for posts"""
+
+@app.route('/users/<int:user_id>/posts/new', methods=['GET'])
+def create_post(user_id):
+    """Show an add form for users"""
+    user = User.query.get_or_404(user_id)
+    return render_template('add_post.html', user=user)
+
+
 @app.route('/users/<int:user_id>/posts/new', methods=['POST'])
 def add_post(user_id):
     """Show form to create a new post for a user or handle form submission."""
     user = User.query.get_or_404(user_id)
-    
-    request.method == 'POST'
     title = request.form['title']
     content = request.form['content']
     new_post = Post(title=title, content=content, user_id=user.id)
@@ -92,14 +100,28 @@ def add_post(user_id):
     db.session.commit()
     return redirect(url_for('show_user', user_id=user.id))
     
-@app.route('/users/<int:user_id>/posts/new', methods=['GET'])
-def create_post(user_id):
-    """Show an add form for users"""
-    user = User.query.get_or_404(user_id)
-    return render_template('add_post.html', user=user)
     
-@app.route('/posts/<int:post_id>')
+@app.route('/posts/<int:post_id>', methods=['GET'])
 def show_post(post_id):
     """Show details of a specific post."""
     post = Post.query.get_or_404(post_id)
     return render_template('post_details.html', post=post)
+
+@app.route('/posts/<int:post_id>/edit', methods=['GET', 'POST'])
+def edit_post(post_id):
+    """Show form to edit a post, and to cancel (back to user page)."""
+    post = Post.query.get_or_404(post_id)
+    if request.method == 'POST':
+        post.title = request.form['title']
+        post.content = request.form['content']
+        db.session.commit()
+        return redirect(url_for('show_post', post_id=post.id))
+    return render_template('edit_post.html', post=post)
+
+@app.route('/posts/<int:post_id>/delete', methods=['POST'])
+def delete_post(post_id):
+    """Delete the post."""
+    post = Post.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    return redirect(url_for('list_users'))
