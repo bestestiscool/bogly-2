@@ -55,3 +55,24 @@ li {
   margin-top: 20px; /* Space above the back link */
   text-align: left;
 }
+
+.tag-name {
+  color: blue;
+  font-size: 26px; 
+}
+.edit-button {
+  background-color: #0080ff;
+  color: white;
+  padding: 5px 8px;
+  font-size: 12px; 
+  margin-left: 10px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.edit-button:hover {
+  background-color: #b3ff00;
+}
+ul {
+  list-style-type: disc;
+}

@@ -2,7 +2,7 @@
 # dropdb blogly
 from flask import Flask, request, render_template, redirect, flash, session,url_for
 from flask_debugtoolbar import DebugToolbarExtension
-from models import db, connect_db, User, Post
+from models import db, connect_db, User, Post, Tag
 
 """Blogly application."""
 
@@ -84,23 +84,26 @@ def delete_user(user_id):
 
 @app.route('/users/<int:user_id>/posts/new', methods=['GET'])
 def create_post(user_id):
-    """Show an add form for users"""
     user = User.query.get_or_404(user_id)
-    return render_template('add_post.html', user=user)
-
+    tags = Tag.query.all()  # Get all tags
+    return render_template('add_post.html', user=user, tags=tags)
 
 @app.route('/users/<int:user_id>/posts/new', methods=['POST'])
 def add_post(user_id):
-    """Show form to create a new post for a user or handle form submission."""
-    user = User.query.get_or_404(user_id)
     title = request.form['title']
     content = request.form['content']
-    new_post = Post(title=title, content=content, user_id=user.id)
+    selected_tags = request.form.getlist('tags')  # Get list of selected tag IDs
+
+    new_post = Post(title=title, content=content, user_id=user_id)
+    for tag_id in selected_tags:
+        tag = Tag.query.get(tag_id)
+        if tag:
+            new_post.tags.append(tag)  # Assuming there is a 'tags' relationship in your Post model
+
     db.session.add(new_post)
     db.session.commit()
-    return redirect(url_for('show_user', user_id=user.id))
-    
-    
+
+    return redirect(url_for('show_user', user_id=user_id))
 @app.route('/posts/<int:post_id>', methods=['GET'])
 def show_post(post_id):
     """Show details of a specific post."""
@@ -125,3 +128,50 @@ def delete_post(post_id):
     db.session.delete(post)
     db.session.commit()
     return redirect(url_for('list_users'))
+
+
+
+#              """From here on its routes for tags"""
+
+@app.route('/tags', methods=['GET'])
+def get_tags():
+    """Show all tags"""
+    tags = Tag.query.all()
+    return render_template('list_tags.html',tags=tags)
+
+@app.route('/tags/<int:tag_id>', methods=['GET'])
+def get_detail_tags(tag_id):
+    """Show detail about a tag and its associated posts"""
+    tag = Tag.query.get_or_404(tag_id)
+    posts = tag.posts  # Assuming you have a 'posts' relationship set up in your Tag model
+    return render_template('tag_details.html', tag=tag, posts=posts)
+
+
+@app.route('/tags/new', methods=['GET', 'POST'])
+def add_tag():
+    """Show form to add a new tag or handle form submission."""
+    if request.method == 'POST':
+        name = request.form['name']
+        new_tag = Tag(name=name)
+        db.session.add(new_tag)
+        db.session.commit()
+        return redirect(url_for('get_tags'))
+    return render_template('add_tag.html')
+
+@app.route('/tags/<int:tag_id>/edit', methods=['GET', 'POST'])
+def edit_tag(tag_id):
+    """Show form to edit a tag or handle form submission."""
+    tag = Tag.query.get_or_404(tag_id)
+    if request.method == 'POST':
+        tag.name = request.form['name']
+        db.session.commit()
+        return redirect(url_for('get_tags', edited_tag_id=tag_id))
+    return render_template('edit_tag.html', tag=tag)
+
+@app.route('/tags/<int:tag_id>/delete', methods=['POST'])
+def delete_tag(tag_id):
+    """Delete a tag."""
+    tag = Tag.query.get_or_404(tag_id)
+    db.session.delete(tag)
+    db.session.commit()
+    return redirect(url_for('get_tags'))
